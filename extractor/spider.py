@@ -3,7 +3,7 @@ from selenium                        import webdriver
 from selenium.webdriver.common.keys  import Keys
 from urllib2                         import urlopen, URLError, HTTPError
 from helper                          import *
-
+from subtitle import download_subtitles
 import httplib
 import cookielib
 import json
@@ -16,7 +16,7 @@ DATA_COURSE_LIST              = './DATA_COURSE_LIST.json'
 DATA_COURSE_DETAILED_LIST_CDN = './DATA_COURSE_DETAILED_LIST_CDN.json'
 URL_LOG_IN                    = 'https://frontendmasters.com/login/'
 URL_COURSE_LIST               = 'https://frontendmasters.com/courses/'
-
+URL_TRANSLATIONS              = 'https://api.frontendmasters.com/v1/kabuki/courses/'
 class Spider(object):
     def __init__(self, mute_audio):
         options = webdriver.ChromeOptions()
@@ -40,16 +40,24 @@ class Spider(object):
     def download(self, course, high_resolution, video_per_video):
         # Get detailed course list
         course_detailed_list = self._get_detailed_course_list(course)
-
+        # Get subtitles
+        # download_subtitle(course, self)
         # Get downloadable CDN
         course_downloadbale = self._get_downloadable_links(course_detailed_list, high_resolution, video_per_video)
-
         # Download course videos
         if not video_per_video:
             self.download_course(course_downloadbale)
 
         # self.browser.close()
 
+
+    def download_subtitles(self, course):
+        course_link = URL_TRANSLATIONS + course
+        self.browser.get(course_link)
+        self.browser.implicitly_wait(4)
+        soup_page = BeautifulSoup(self.browser.page_source, 'html.parser')
+        data = soup_page.find('pre').getText()
+        download_subtitles(json.loads(data), self)
 
     def _get_detailed_course_list(self, course):
         course_link = URL_COURSE_LIST + course + '/'
@@ -70,6 +78,7 @@ class Spider(object):
         )
 
         sections = self._get_section_data(sections_items)
+        # is like this {'subsections': [{'url': u'/courses/complete-intro-react/introduction/', 'downloadable_url': None, 'title': u'Introduction'},...]}
         course_detial['sections'].extend(sections)
 
         return course_detial
@@ -109,7 +118,6 @@ class Spider(object):
                 'url': None,
                 'downloadable_url': None
             }
-
             course_subsection['url'] = video.find('a')['href']
             title = video.find('a').find(
                 'div', {'class', 'heading'}
@@ -131,18 +139,16 @@ class Spider(object):
         # }
 
         url = course['url']
-
         if video_per_video:
             title = course['title']
             download_path = self.create_download_directory()
             course_path = self.create_course_directory(download_path, title)
-
         for i1, section in enumerate(course['sections']):
             section_title = section['title']
 
             for i2, subsection in enumerate(section['subsections']):
                 if subsection['downloadable_url'] is None:
-
+                    # print("Downloading infomations  are {0} ------- {1} ---------- {2}: ".format(course, section, subsection))
                     print("Retriving: {0}/{1}/{2}".format(
                         format_filename(course['title']),
                         format_filename(section['title']),
@@ -190,7 +196,6 @@ class Spider(object):
         title = course['title']
         download_path = self.create_download_directory()
         course_path = self.create_course_directory(download_path, title)
-
         for i1, section in enumerate(course['sections']):
             section_title = section['title']
 

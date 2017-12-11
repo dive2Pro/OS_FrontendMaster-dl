@@ -12,7 +12,8 @@ def downloader(id, password, course, mute_audio, high_resolution, video_per_vide
     spider = Spider(mute_audio)
     click.secho('>>> Login with your credential', fg='green')
     spider.login(id, password)
-
+    click.secho('>>> Downloading course subtitles', fg='green')
+    spider.download_subtitles(course);
     click.secho('>>> Downloading course: ' + course, fg='green')
     spider.download(course, high_resolution, video_per_video)
 
