@@ -38,9 +38,10 @@ class Spider(object):
         password_field.send_keys(password)
         password_field.send_keys(Keys.RETURN)
 
-    def download(self, course, high_resolution, video_per_video):
-        click.secho('>>> Downloading course subtitles', fg='green')
-        self.download_subtitles(course)
+    def download(self, course, high_resolution, video_per_video, has_sub_title=True):
+        if has_sub_title:
+            click.secho('>>> Downloading course subtitles', fg='green')
+            self.download_subtitles(course)
         # Get detailed course list
         course_detailed_list = self._get_detailed_course_list(course)
         # Get subtitles
@@ -53,29 +54,36 @@ class Spider(object):
 
         # self.browser.close()
 
-    def download_all_courses(self, mute_audio, high_resolution, video_per_video ):
+    def download_all_courses(self, mute_audio, high_resolution, video_per_video, course_name ):
         # now we are in cours page
         # find all courses id
         courses = self._get_courses_data()
         # spider download course (video_per_video)
-        courses = sorted(courses, key=lambda c:c['meta'][0:2])
+        # courses = sorted(courses, key=lambda c: c['meta'][0:2])
+        if course_name:
+            courses = filter(lambda x: findWholeWord(course_name)(x['title']), courses)
+        # print(courses, ' ---- ')
         for course in courses :
             id = course['id']
-            print('meta = ', course['meta'])
-            self.download(id, high_resolution, video_per_video)
-            click.secho('>>> Downloading  {0} <<<'.format(id), fg='red')
+            has_sub_title = course['has_sub_title']
+            self.download(id, high_resolution, video_per_video , has_sub_title)
         click.secho('>>> Downloading all of courses  are finished <<<', fg='red')
 
     def _get_courses_data(self):
         courses = []
         soup_page = BeautifulSoup(self.browser.page_source, 'html.parser')
-        items = soup_page.find('ul',{'class': 'MediaList'}).find_all('li',{'class':'MediaItem s-vflex'})
+        items = soup_page.find('ul', {'class': 'MediaList'}).find_all('li', {'class': 'MediaItem s-vflex'})
         for index, item in enumerate(items, start= 0):
             course_item = {
                 'id':None,
-                'meta':None
+                'meta':None,
+                'title': None,
+                'has_sub_title': False
             }
-            course_item['meta'] = item.find('div', {'class':'meta'}).get_text("|", strip=True)
+            course_item['title'] = item.find('h2', {'class': 'title'}).find('a', {}).get_text("|", strip=True)
+            meta = item.find('div', {'class': 'meta'})
+            course_item['has_sub_title'] = meta.find('strong') is not None
+            course_item['meta'] = meta.get_text("|", strip=True)
             course_item['id'] = item['id']
             courses.append(course_item)
         return courses
@@ -225,11 +233,12 @@ class Spider(object):
         title = course['title']
         download_path = self.create_download_directory()
         course_path = self.create_course_directory(download_path, title)
+        click.secho('>>> Downloading  {0}  start <<<'.format(title), fg='red')
         for i1, section in enumerate(course['sections']):
             section_title = section['title']
-
             for i2, subsection in enumerate(section['subsections']):
                 self.download_video(i1, i2, subsection, section_title, course_path)
+        click.secho('>>> Downloading  {0}  end <<<'.format(title), fg='red')
 
     def download_video(self, i1, i2, subsection, section_title, course_path):
         subsection_title = subsection['title']

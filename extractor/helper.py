@@ -2,7 +2,24 @@ import os
 import os.path
 import string
 import requests
+import re
 from urllib2 import urlopen, URLError, HTTPError
+
+import re
+
+
+def findWholeWord(w):
+    return re.compile(r'\b({0})\b'.format(w), flags=re.IGNORECASE).search
+
+#
+# courses_names = [{'name': 'Complete Intro to React, v3 (feat. Redux, Router & Flow)'},
+#                  {'name': 'Testing JavaScript Applications (feat. React and Redux)'},
+#                  {'name': 'Advanced State Management in React (feat. Redux and MobX)'},
+#                  {'name': "Reactive Angular 2"}
+#                  ]
+# names = sorted(courses_names , key=lambda n : n['name'], cmp=lambda a,b)
+# names = filter(lambda x: findWholeWord('React')(x['name']), courses_names)
+# print(names)
 
 def format_filename(filename_str):
     s = filename_str
