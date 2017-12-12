@@ -234,18 +234,20 @@ class Spider(object):
         download_path = self.create_download_directory()
         course_path = self.create_course_directory(download_path, title)
         click.secho('>>> Downloading  {0}  start <<<'.format(title), fg='red')
+        index = 0
         for i1, section in enumerate(course['sections']):
             section_title = section['title']
             for i2, subsection in enumerate(section['subsections']):
-                self.download_video(i1, i2, subsection, section_title, course_path)
+                self.download_video(index, subsection, section_title, course_path)
+                index += 1
         click.secho('>>> Downloading  {0}  end <<<'.format(title), fg='red')
 
-    def download_video(self, i1, i2, subsection, section_title, course_path):
+    def download_video(self, index, subsection, section_title, course_path):
         subsection_title = subsection['title']
         print("Downloading: {0}".format(
             format_filename(subsection_title)))
 
-        filename = str(i1) + '-' + str(i2) + '-' + format_filename(
+        filename = str(index) + '-' + format_filename(
             section_title) + '-' + format_filename(
             subsection_title) + '.' + get_file_path_from_url(subsection['downloadable_url'])
 

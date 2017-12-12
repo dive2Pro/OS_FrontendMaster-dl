@@ -2,6 +2,7 @@ import requests
 import os
 import json
 from helper import format_filename
+from vtt_to_srt import vtt_to_srt
 TRANSCRIPTS_PATH = 'https://api.frontendmasters.com/v1/kabuki/transcripts/'
 def download_subtitles(couses, self):
     if couses is None:
@@ -14,12 +15,12 @@ def download_subtitles(couses, self):
     data_json = os.path.join(course_path, 'index.json')
     with open(data_json, 'wb') as out_file:
         json.dump(couses, out_file)
-    for lesson_data in couses['lessonData']:
+    for i, lesson_data in enumerate(couses['lessonData']):
         lesson_title = lesson_data['title']
         stats_id = lesson_data['statsId']
         if stats_id is None:
             continue
-        path = os.path.join(course_path, format_filename(lesson_title) + ".vtt")
+        path = os.path.join(course_path, str(i) + "-" + format_filename(lesson_title) + ".vtt")
         if not os.path.isfile(path) or os.path.getsize(path) == 0:
             print("Downloading subtitle of {0}/{1}".format(format_filename(lesson_title), path))
             lesson_transcript_api = TRANSCRIPTS_PATH + stats_id + ".vtt"
@@ -28,3 +29,4 @@ def download_subtitles(couses, self):
                 continue
             with open(path, 'wb') as local_file:
                 local_file.writelines(data.iter_lines())
+    vtt_to_srt(course_path)
