@@ -1,6 +1,7 @@
 import os
 import os.path
 import string
+import requests
 from urllib2 import urlopen, URLError, HTTPError
 
 def format_filename(filename_str):
@@ -19,16 +20,20 @@ def download_file(url, path, self):
         return
     if len(url) <= 1:
         return
-
+    print('Download_file start : ', url, path )
     if not os.path.isfile(path) or os.path.getsize(path) == 0:
-        self.browser.get(url)
         temporaryURL = self.browser.current_url
-        self.browser.back()
-        buff = urlopen(temporaryURL)
+        # self.browser.get(url)
+        # self.browser.back()
+        r = requests.get(url, stream=True)
         print("Downloading: %s" % (path))
-
         with open(path, 'wb') as local_file:
-            local_file.write(buff.read())
+            for chunk in r.iter_content(chunk_size=1024 * 1024):
+                if chunk:  # filter out keep-alive new chunks
+                    local_file.write(chunk)
+                    local_file.flush()
+                    os.fsync(local_file.fileno())
+            local_file.close()
 
 
 def create_path(path):

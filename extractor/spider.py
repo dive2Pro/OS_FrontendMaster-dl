@@ -10,6 +10,7 @@ import json
 import mechanize
 import os
 import time
+import click
 
 # Constants
 DATA_COURSE_LIST              = './DATA_COURSE_LIST.json'
@@ -38,6 +39,8 @@ class Spider(object):
         password_field.send_keys(Keys.RETURN)
 
     def download(self, course, high_resolution, video_per_video):
+        click.secho('>>> Downloading course subtitles', fg='green')
+        self.download_subtitles(course)
         # Get detailed course list
         course_detailed_list = self._get_detailed_course_list(course)
         # Get subtitles
@@ -50,7 +53,32 @@ class Spider(object):
 
         # self.browser.close()
 
+    def download_all_courses(self, mute_audio, high_resolution, video_per_video ):
+        # now we are in cours page
+        # find all courses id
+        courses = self._get_courses_data()
+        # spider download course (video_per_video)
+        courses = sorted(courses, key=lambda c:c['meta'][0:2])
+        for course in courses :
+            id = course['id']
+            print('meta = ', course['meta'])
+            self.download(id, high_resolution, video_per_video)
+            click.secho('>>> Downloading  {0} <<<'.format(id), fg='red')
+        click.secho('>>> Downloading all of courses  are finished <<<', fg='red')
 
+    def _get_courses_data(self):
+        courses = []
+        soup_page = BeautifulSoup(self.browser.page_source, 'html.parser')
+        items = soup_page.find('ul',{'class': 'MediaList'}).find_all('li',{'class':'MediaItem s-vflex'})
+        for index, item in enumerate(items, start= 0):
+            course_item = {
+                'id':None,
+                'meta':None
+            }
+            course_item['meta'] = item.find('div', {'class':'meta'}).get_text("|", strip=True)
+            course_item['id'] = item['id']
+            courses.append(course_item)
+        return courses
     def download_subtitles(self, course):
         course_link = URL_TRANSLATIONS + course
         self.browser.get(course_link)
@@ -58,6 +86,7 @@ class Spider(object):
         soup_page = BeautifulSoup(self.browser.page_source, 'html.parser')
         data = soup_page.find('pre').getText()
         download_subtitles(json.loads(data), self)
+
 
     def _get_detailed_course_list(self, course):
         course_link = URL_COURSE_LIST + course + '/'
@@ -68,7 +97,7 @@ class Spider(object):
         }
 
         self.browser.get(course_link)
-        self.browser.implicitly_wait(2)
+        self.browser.implicitly_wait(4)
         soup_page = BeautifulSoup(self.browser.page_source, 'html.parser')
 
         # Find video nav list
