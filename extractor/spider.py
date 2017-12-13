@@ -39,9 +39,8 @@ class Spider(object):
         password_field.send_keys(Keys.RETURN)
 
     def download(self, course, high_resolution, video_per_video, has_sub_title=True):
-        if has_sub_title:
-            click.secho('>>> Downloading course subtitles', fg='green')
-            self.download_subtitles(course)
+        # if has_sub_title:
+
         # Get detailed course list
         course_detailed_list = self._get_detailed_course_list(course)
         # Get subtitles
@@ -88,6 +87,7 @@ class Spider(object):
             courses.append(course_item)
         return courses
     def download_subtitles(self, course):
+        click.secho('>>> Downloading course subtitles', fg='green')
         course_link = URL_TRANSLATIONS + course
         self.browser.get(course_link)
         self.browser.implicitly_wait(4)

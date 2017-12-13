@@ -9,15 +9,20 @@ from extractor.spider import Spider
 @click.option('--video-per-video', help='Download one video at a time', is_flag=True)
 @click.option('--all-courses', help='Download all of courses', is_flag=True)
 @click.option('--course-name', help='Download specific category video ')
-def downloader(id, password, mute_audio, high_resolution, video_per_video, all_courses, course_name):
+@click.option('--sub-titles',help='Download subtitles', is_flag=True)
+def downloader(id, password, mute_audio, high_resolution, video_per_video, all_courses, course_name, sub_titles):
     spider = Spider(mute_audio)
     click.secho('>>> Login with your credential', fg='green')
     spider.login(id, password)
+
     if all_courses :
         click.secho('>>> Downloading all of courses', fg='red')
         spider.download_all_courses(mute_audio, high_resolution, video_per_video, course_name)
         return
     course = click.prompt('Course Id')
+    if sub_titles :
+        spider.download_subtitles(course)
+        return
     click.secho('>>> Downloading course: ' + course, fg='green')
     spider.download(course, high_resolution, video_per_video)
     click.secho('>>> Download Completed! Thanks for using frontendmasters-dl', fg='green')
