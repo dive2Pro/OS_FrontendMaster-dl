@@ -15,12 +15,12 @@ def downloader(id, password, mute_audio, high_resolution, video_per_video, all_c
     click.secho('>>> Login with your credential', fg='green')
     spider.login(id, password)
 
-    if all_courses :
+    if all_courses:
         click.secho('>>> Downloading all of courses', fg='red')
         spider.download_all_courses(mute_audio, high_resolution, video_per_video, course_name)
         return
     course = click.prompt('Course Id')
-    if sub_titles :
+    if sub_titles:
         spider.download_subtitles(course)
         return
     click.secho('>>> Downloading course: ' + course, fg='green')

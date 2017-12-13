@@ -34,9 +34,9 @@ def get_file_path_from_url(url):
 def download_file(url, path, self):
     # FIXME(Xinyang): Better exception handling for empty url
     if url is None:
-        return
+        raise AttributeError("Url is empty")
     if len(url) <= 1:
-        return
+        raise AttributeError("Url is empty")
     print('Download_file start : ', url, path )
     if not os.path.isfile(path) or os.path.getsize(path) == 0:
         temporaryURL = self.browser.current_url

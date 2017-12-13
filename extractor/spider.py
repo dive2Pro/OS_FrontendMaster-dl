@@ -1,8 +1,8 @@
-from bs4                             import BeautifulSoup
-from selenium                        import webdriver
-from selenium.webdriver.common.keys  import Keys
-from urllib2                         import urlopen, URLError, HTTPError
-from helper                          import *
+from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from urllib2 import urlopen, URLError, HTTPError
+from helper import *
 from subtitle import download_subtitles
 import httplib
 import cookielib
@@ -11,13 +11,17 @@ import mechanize
 import os
 import time
 import click
+import sys
+import time
 
 # Constants
-DATA_COURSE_LIST              = './DATA_COURSE_LIST.json'
+DATA_COURSE_LIST = './DATA_COURSE_LIST.json'
 DATA_COURSE_DETAILED_LIST_CDN = './DATA_COURSE_DETAILED_LIST_CDN.json'
-URL_LOG_IN                    = 'https://frontendmasters.com/login/'
-URL_COURSE_LIST               = 'https://frontendmasters.com/courses/'
-URL_TRANSLATIONS              = 'https://api.frontendmasters.com/v1/kabuki/courses/'
+URL_LOG_IN = 'https://frontendmasters.com/login/'
+URL_COURSE_LIST = 'https://frontendmasters.com/courses/'
+URL_TRANSLATIONS = 'https://api.frontendmasters.com/v1/kabuki/courses/'
+
+
 class Spider(object):
     def __init__(self, mute_audio):
         options = webdriver.ChromeOptions()
@@ -38,9 +42,9 @@ class Spider(object):
         password_field.send_keys(password)
         password_field.send_keys(Keys.RETURN)
 
-    def download(self, course, high_resolution, video_per_video, has_sub_title=True):
-        # if has_sub_title:
-
+    def download(self, course, high_resolution, video_per_video, has_sub_title=False):
+        if has_sub_title:
+            self.download_subtitles(course)
         # Get detailed course list
         course_detailed_list = self._get_detailed_course_list(course)
         # Get subtitles
@@ -53,7 +57,7 @@ class Spider(object):
 
         # self.browser.close()
 
-    def download_all_courses(self, mute_audio, high_resolution, video_per_video, course_name ):
+    def download_all_courses(self, mute_audio, high_resolution, video_per_video, course_name):
         # now we are in cours page
         # find all courses id
         courses = self._get_courses_data()
@@ -62,20 +66,20 @@ class Spider(object):
         if course_name:
             courses = filter(lambda x: findWholeWord(course_name)(x['title']), courses)
         # print(courses, ' ---- ')
-        for course in courses :
+        for course in courses:
             id = course['id']
             has_sub_title = course['has_sub_title']
-            self.download(id, high_resolution, video_per_video , has_sub_title)
+            self.download(id, high_resolution, video_per_video, has_sub_title)
         click.secho('>>> Downloading all of courses  are finished <<<', fg='red')
 
     def _get_courses_data(self):
         courses = []
         soup_page = BeautifulSoup(self.browser.page_source, 'html.parser')
         items = soup_page.find('ul', {'class': 'MediaList'}).find_all('li', {'class': 'MediaItem s-vflex'})
-        for index, item in enumerate(items, start= 0):
+        for index, item in enumerate(items, start=0):
             course_item = {
-                'id':None,
-                'meta':None,
+                'id': None,
+                'meta': None,
                 'title': None,
                 'has_sub_title': False
             }
@@ -86,6 +90,7 @@ class Spider(object):
             course_item['id'] = item['id']
             courses.append(course_item)
         return courses
+
     def download_subtitles(self, course):
         click.secho('>>> Downloading course subtitles', fg='green')
         course_link = URL_TRANSLATIONS + course
@@ -94,7 +99,6 @@ class Spider(object):
         soup_page = BeautifulSoup(self.browser.page_source, 'html.parser')
         data = soup_page.find('pre').getText()
         download_subtitles(json.loads(data), self)
-
 
     def _get_detailed_course_list(self, course):
         course_link = URL_COURSE_LIST + course + '/'
@@ -159,7 +163,7 @@ class Spider(object):
             title = video.find('a').find(
                 'div', {'class', 'heading'}
             ).find(
-                'h3', { }
+                'h3', {}
             ).getText()
 
             course_subsection['title'] = format_filename(title)
@@ -174,16 +178,14 @@ class Spider(object):
         #     'url': course_link,
         #     'sections': []
         # }
-
         url = course['url']
+        video_index = 0
         if video_per_video:
             title = course['title']
             download_path = self.create_download_directory()
             course_path = self.create_course_directory(download_path, title)
-        index = 0
         for i1, section in enumerate(course['sections']):
             section_title = section['title']
-
             for i2, subsection in enumerate(section['subsections']):
                 if subsection['downloadable_url'] is None:
                     # print("Downloading infomations  are {0} ------- {1} ---------- {2}: ".format(course, section, subsection))
@@ -191,26 +193,33 @@ class Spider(object):
                         format_filename(course['title']),
                         format_filename(section['title']),
                         format_filename(subsection['title'])))
-
                     video_url = 'https://frontendmasters.com' + subsection['url']
-                    self.browser.get(video_url)
-                    time.sleep(8)
-
-                    if high_resolution:
-                        resolution_button = self.browser.find_element_by_class_name("fm-vjs-quality")
-                        resolution_button.click()
-
-                        high_resolution_text = resolution_button.find_element_by_tag_name("li")
-                        high_resolution_text.click()
-                        time.sleep(3)
-
-                    url_str = self._get_video_source()
-                    print("Video URL: {0}".format(url_str))
-                    subsection['downloadable_url'] = url_str
-                    if video_per_video:
-                        self.download_video(index, subsection, section_title, course_path)
-                        index += 1
-
+                    def jump_video_page():
+                        subsection_title = subsection['title']
+                        try:
+                            self.browser.get(video_url)
+                            time.sleep(8)
+                            if high_resolution:
+                                resolution_button = self.browser.find_element_by_class_name("fm-vjs-quality")
+                                resolution_button.click()
+                                high_resolution_text = resolution_button.find_element_by_tag_name("li")
+                                high_resolution_text.click()
+                                time.sleep(3)
+                            url_str = self._get_video_source()
+                            print("Video URL: {0}".format(url_str))
+                            if not url_str:
+                                raise AttributeError('Video url is Empty, crash on error 429')
+                            subsection['downloadable_url'] = url_str
+                            if video_per_video:
+                                self.download_video(video_index, subsection, section_title, course_path)
+                        except:
+                            print("Error occur - > ", sys.exc_info()[0])
+                            print(">>> Try to sleep 60s")
+                            time.sleep(60)
+                            print(">>> Retry to download ", subsection_title)
+                            jump_video_page()
+                    jump_video_page()
+                    video_index += 1
         return course
 
     def _get_video_source(self):
@@ -219,7 +228,7 @@ class Spider(object):
             source_link = video_tag.get_attribute('src')
             return source_link
         except:
-            return "http://placehold.it/500x500"
+            raise sys.exc_info()[0]
 
     def create_download_directory(self):
         download_path = os.path.join(os.path.curdir, 'Download')
@@ -250,7 +259,6 @@ class Spider(object):
             format_filename(subsection_title)))
 
         filename = str(index) + '-' + format_filename(
-            section_title) + '-' + format_filename(
             subsection_title) + '.' + get_file_path_from_url(subsection['downloadable_url'])
 
         file_path = os.path.join(course_path, format_filename(filename))
