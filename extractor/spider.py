@@ -180,22 +180,24 @@ class Spider(object):
         # }
         url = course['url']
         video_index = 0
-        if video_per_video:
-            title = course['title']
-            download_path = self.create_download_directory()
-            course_path = self.create_course_directory(download_path, title)
+        title = course['title']
+        download_path = self.create_download_directory()
+        course_path = self.create_course_directory(download_path, title)
+
         for i1, section in enumerate(course['sections']):
             section_title = section['title']
             for i2, subsection in enumerate(section['subsections']):
                 if subsection['downloadable_url'] is None:
+
                     # print("Downloading infomations  are {0} ------- {1} ---------- {2}: ".format(course, section, subsection))
                     print("Retriving: {0}/{1}/{2}".format(
                         format_filename(course['title']),
                         format_filename(section['title']),
                         format_filename(subsection['title'])))
                     video_url = 'https://frontendmasters.com' + subsection['url']
+                    subsection_title = subsection['title']
+
                     def jump_video_page():
-                        subsection_title = subsection['title']
                         try:
                             self.browser.get(video_url)
                             time.sleep(8)
@@ -218,6 +220,16 @@ class Spider(object):
                             time.sleep(60)
                             print(">>> Retry to download ", subsection_title)
                             jump_video_page()
+
+                    if video_per_video:
+                        def find_file(post_fix):
+                            filename = str(video_index) + "-" + subsection_title + post_fix
+                            file_path = os.path.join(course_path, filename)
+                            return is_file_exits(file_path)
+
+                        if find_file(".webm") or find_file(".mp4"):
+                            video_index += 1
+                            continue
                     jump_video_page()
                     video_index += 1
         return course
@@ -253,14 +265,18 @@ class Spider(object):
                 index += 1
         click.secho('>>> Downloading  {0}  end <<<'.format(title), fg='red')
 
+    def get_file_path(self, index, subsection, course_path):
+        subsection_title = subsection['title']
+        filename = str(index) + '-' + format_filename(
+            subsection_title) + '.' + get_file_path_from_url(subsection['downloadable_url'])
+        file_path = os.path.join(course_path, format_filename(filename))
+        return file_path
+
     def download_video(self, index, subsection, section_title, course_path):
         subsection_title = subsection['title']
         print("Downloading: {0}".format(
             format_filename(subsection_title)))
 
-        filename = str(index) + '-' + format_filename(
-            subsection_title) + '.' + get_file_path_from_url(subsection['downloadable_url'])
-
-        file_path = os.path.join(course_path, format_filename(filename))
+        file_path = self.get_file_path(index, subsection, course_path)
 
         download_file(subsection['downloadable_url'], file_path, self)

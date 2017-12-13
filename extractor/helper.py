@@ -11,6 +11,7 @@ import re
 def findWholeWord(w):
     return re.compile(r'\b({0})\b'.format(w), flags=re.IGNORECASE).search
 
+
 #
 # courses_names = [{'name': 'Complete Intro to React, v3 (feat. Redux, Router & Flow)'},
 #                  {'name': 'Testing JavaScript Applications (feat. React and Redux)'},
@@ -28,8 +29,17 @@ def format_filename(filename_str):
     filename = filename.replace(' ', '_')
     return filename
 
+
 def get_file_path_from_url(url):
     return url.split("?")[0].split(".")[-1]
+
+
+def is_file_exits(path):
+    try:
+        return os.path.isfile(path) or os.path.getsize(path) == 0
+    except:
+        return False
+
 
 def download_file(url, path, self):
     # FIXME(Xinyang): Better exception handling for empty url
@@ -37,8 +47,8 @@ def download_file(url, path, self):
         raise AttributeError("Url is empty")
     if len(url) <= 1:
         raise AttributeError("Url is empty")
-    print('Download_file start : ', url, path )
-    if not os.path.isfile(path) or os.path.getsize(path) == 0:
+    print('Download_file start : ', url, path)
+    if not is_file_exits(path):
         temporaryURL = self.browser.current_url
         # self.browser.get(url)
         # self.browser.back()
